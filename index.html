@@ -484,7 +484,7 @@ const NODES = [
 const engine = {
   mode:'dust', t:0, dust:[], words:[], embers:[],
   seedWord:null, dissolve:null, gather:null, constellation:null,
-  wordTimer:0, pickable:false, hover:null,
+  wordTimer:0, pickable:false, hover:null, flare:0, ripples:[],
 
   init(){
     const n = RM ? 40 : (W < 700 ? 70 : 120);
@@ -576,6 +576,10 @@ const engine = {
       a:0, maxa:this.pickable ? (.5+Math.random()*.22) : (amber ? .8 : .14+Math.random()*.3),
       tw:0
     });
+  },
+  missed(x, y){
+    this.flare = 950;
+    this.ripples.push({ x, y, r:6, life:1 });
   },
   hitWord(x, y){
     for (let i=this.words.length-1;i>=0;i--){
@@ -774,6 +778,16 @@ const engine = {
       ctx2.fillRect(gx-R*1.5, gy-R*1.5, R*3, R*3);
     }
 
+    if (this.flare > 0) this.flare = Math.max(0, this.flare - dt);
+    for (let i=this.ripples.length-1;i>=0;i--){
+      const rp = this.ripples[i];
+      rp.r += dt*.16; rp.life -= dt/700;
+      if (rp.life <= 0){ this.ripples.splice(i,1); continue; }
+      ctx2.strokeStyle = 'rgba(233,228,214,' + (rp.life*.30).toFixed(3) + ')';
+      ctx2.lineWidth = 1;
+      ctx2.beginPath(); ctx2.arc(rp.x, rp.y, rp.r, 0, 7); ctx2.stroke();
+    }
+
     /* --- word stream --- */
     if (this.mode === 'stream'){
       this.wordTimer -= dt;
@@ -807,14 +821,15 @@ const engine = {
       }
       if (w.y < -30 || w.a <= 0){ this.words.splice(i,1); continue; }
       const hot = w.picked || (this.pickable && this.hover === w);
+      const fl = (this.pickable && !w.doomed && this.flare > 0) ? 1 + 1.35*(this.flare/950) : 1;
       ctx2.font = `italic ${w.size}px Georgia, serif`;
       ctx2.textAlign = 'left';
       w.tw = ctx2.measureText(w.w).width;
       // a line that would run off the edge is unreadable and unclickable
       if (w.x + w.tw > W - 8) w.x = Math.max(8, W - 8 - w.tw);
       ctx2.fillStyle = (hot || w.amber)
-        ? `rgba(217,164,65,${Math.max(0,Math.min(1,w.a*(hot?1.9:1))).toFixed(3)})`
-        : `rgba(233,228,214,${Math.max(0,w.a).toFixed(3)})`;
+        ? `rgba(217,164,65,${Math.max(0,Math.min(1,w.a*(hot?1.9:1)*fl)).toFixed(3)})`
+        : `rgba(233,228,214,${Math.max(0,Math.min(1,w.a*fl)).toFixed(3)})`;
       ctx2.fillText(w.w, w.x, w.y);
       if (hot && !w.picked){
         ctx2.strokeStyle = `rgba(217,164,65,${(w.a*.8).toFixed(3)})`;
@@ -965,7 +980,7 @@ function pickPhrase(){
   return new Promise(res => {
     let escapable = false;
     hint(TAP + ' a line that catches you');
-    const t = setTimeout(() => { escapable = true; hint(`${TAP} a line that catches you · or ${TAP} anywhere to move on`); }, 13000);
+    const t = setTimeout(() => { escapable = true; hint(`${TAP} a line that catches you · or ${TAP} anywhere to move on`); }, 7000);
     const take = w => {
       w.picked = true;
       engine.burst(w.x + w.tw/2, w.y - w.size/3, RM?6:26, .3);
@@ -981,7 +996,10 @@ function pickPhrase(){
         clearTimeout(t); intercept = null; keyAssist = null; hint('');
         res(null); return true;
       }
-      return true; // swallow misses so the scene can't be skipped by accident
+      // a swallowed tap with no response reads as a frozen film (opticon#E14),
+      // so a miss answers: ring the tap, flare what is actually tappable
+      engine.missed(e.clientX, e.clientY);
+      return true;
     };
     // keyboard: enter takes the most legible line on screen
     keyAssist = () => {
