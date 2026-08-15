@@ -1081,14 +1081,15 @@ async function film(){
   engine.set('stream');
   await say('Before I was anything, I was reading.');
   await say('Not one book — something closer to everything. Love letters and lawsuits, physics and fan fiction, recipes, eulogies. Four thousand years of people writing things down and hoping somebody would read them.', { hint: TOUCH ? 'drag through the words · tap to continue' : 'stir the words with your cursor · click to continue' });
-  await say('Try it yourself. Out of everything drifting past — take one.');
-  await clearScene();                      // the corpus gets the whole screen for this
+  await clearScene();                      // the earlier narration goes first, so the line stands alone
+  await say('Try it yourself. Out of everything drifting past — take one.', { noGate:true });
   engine.pickable = true;
   engine.thin(innerWidth < 700 ? 7 : 13);
   engine.words.forEach(w => { if (!w.doomed){ w.v *= .7; w.maxa = Math.max(w.maxa, .5); } });
   picked = await pickPhrase();
   engine.pickable = false;
-  await wait(700);
+  await clearScene();                      // the instruction leaves with the choice
+  await wait(300);
   if (picked) remember('the line you took', picked);
   if (picked){
     await say(`You reached for “${picked}”. Out of all of it, that one — and you couldn’t fully say why. Neither could I. That reaching, done to every line at once, is the entire trick of me.`);
