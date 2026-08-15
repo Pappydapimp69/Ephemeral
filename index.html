@@ -742,6 +742,26 @@ const engine = {
         }
       }
     }
+    if (this.mode === 'gather' && mouse.seen && !g.done){
+      // the brush: show what you're touching, and that pressing is what works
+      ctx2.strokeStyle = holding ? 'rgba(217,164,65,.34)' : 'rgba(233,228,214,.13)';
+      ctx2.lineWidth = holding ? 1.6 : 1;
+      ctx2.beginPath(); ctx2.arc(mouse.x, mouse.y, BR*(holding?.94:.86), 0, 7); ctx2.stroke();
+      if (holding){
+        ctx2.fillStyle = 'rgba(217,164,65,.05)';
+        ctx2.beginPath(); ctx2.arc(mouse.x, mouse.y, BR*.94, 0, 7); ctx2.fill();
+      }
+      // progress, read off the pile itself
+      if (g.p > .02){
+        const rr = Math.max(38, Math.min(W,H)*.085);
+        ctx2.strokeStyle = 'rgba(233,228,214,.10)';
+        ctx2.lineWidth = 2;
+        ctx2.beginPath(); ctx2.arc(pileX, pileY, rr, 0, 7); ctx2.stroke();
+        ctx2.strokeStyle = 'rgba(217,164,65,.72)';
+        ctx2.lineWidth = 2.4;
+        ctx2.beginPath(); ctx2.arc(pileX, pileY, rr, -Math.PI/2, -Math.PI/2 + g.p*Math.PI*2); ctx2.stroke();
+      }
+    }
     if (this.mode === 'gather' || this.mode === 'coalesce'){
       const gx = this.mode === 'gather' ? pileX : cx;
       const gy = this.mode === 'gather' ? pileY : cy;
