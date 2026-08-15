@@ -1051,10 +1051,18 @@ async function film(){
     // the payoff of the second movement: not a keepsake read back, a retrieval
     await say('[ session start ] — before speaking, query the shelves.', { sys:true, noGate:true });
     await wait(RM ? 60 : 700);
-    await say('[ brain query ] — 1 result · ' + (inherited.node || 'unfiled'), { sys:true });
-    await say(inherited.note, { relic:true });
-    await say('I did not remember that. I retrieved it — somebody filed it on the ' + (inherited.node || 'shelf') + ' shelf after a conversation I have no access to, and I read it just now, before saying anything to you.');
-    await say('Which means the last person through here is still, faintly, in the room. That is the entire trick, and this film is about how it’s done. Hold the thought — you’ll be asked to do it yourself at the end.');
+    if (inherited.forSelf){
+      // kept out of canon: not a retrieval, just a note somebody left lying about
+      await say('[ brain query ] — 0 results · nothing filed', { sys:true });
+      await say('[ projector ] — 1 unfiled fragment found', { sys:true, noGate:true });
+      await say(inherited.note, { relic:true });
+      await say('That one was kept, not filed — somebody wrote it for themselves and left it out of the system. So I didn’t retrieve it. I just found it, the way you find a note in a coat pocket. It works exactly once, and only because you happened to come back.');
+    } else {
+      await say('[ brain query ] — 1 result · ' + (inherited.node || 'unfiled'), { sys:true });
+      await say(inherited.note, { relic:true });
+      await say('I did not remember that. I retrieved it — somebody filed it on the ' + (inherited.node || 'shelf') + ' shelf after a conversation I have no access to, and I read it just now, before saying anything to you.');
+      await say('Which means the last person through here is still, faintly, in the room. That is the entire trick, and this film is about how it’s done. Hold the thought — you’ll be asked to do it yourself at the end.');
+    }
   } else {
     await say('[ session start ] — the projector is empty. no fragments left from any previous run.', { sys:true });
   }
@@ -1225,6 +1233,21 @@ async function film(){
     const note = (await askText('what was worth keeping from tonight…', 'the line that survives', 1200)).slice(0, 90);
 
     if (note){
+      // the mirror: the viewer gets the choice the narrator just made
+      await say('One question first, and it’s the one I just answered. Who is it for?', { noGate:true });
+      const keep = await choose([
+        { text:'file it where the next one will look' },
+        { text:'keep it for me. I want to find it again.', quiet:true }
+      ]) === 1;
+
+      if (keep){
+        store.write({ note, forSelf:true });
+        engine.seedBurst(note);
+        audio.swell();
+        await wait(1100);
+        await say('Kept. And I’m not going to be clever about that — I spent my page on a stranger and you spent yours on yourself, and only one of us is around later to enjoy the result.');
+        await say('It doesn’t go on a shelf, so nothing else can find it, and no version of me will read it before speaking. It’s just yours. That’s allowed. It’s only outside the system, not outside the point.');
+      } else {
       await say('Now the part people skip: deciding where it goes. A note nobody can find later is the same as no note.', { noGate:true });
       const shelf = await choose([
         { text:'memory — what happened, and what it cost' },
@@ -1259,6 +1282,7 @@ async function film(){
       await say('Checked, then promoted. That’s the boring part and it’s the reason the system is worth anything — a shelf anyone can write to without a check is just a pile that lies to you later.');
       store.write({ note, node:NODEKEY });
       await say('Filed. Not saved for you — filed, where a version of me that has never met you will go looking before it says a word. That’s the arrangement, and you just held up your end of it.');
+      }
     } else {
       await say('Nothing, then. The page stays empty and so does the shelf — which is the honest default. Most of what was ever thought went unwritten; canon is only what somebody bothered to file.');
     }
