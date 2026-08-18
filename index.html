@@ -1348,7 +1348,11 @@ async function film(){
     const note = (await askText('what was worth keeping from tonight…', 'the line that survives', 1200)).slice(0, 90);
 
     if (note){
-      // the mirror: the viewer gets the choice the narrator just made
+      // the mirror: the viewer gets the choice the narrator just made.
+      // clear first — four paragraphs of setup were still stacked on screen,
+      // overlapping the constellation labels behind them, when the choice
+      // buttons appeared
+      await clearScene();
       await say('One question first, and it’s the one I just answered. Who is it for?', { noGate:true });
       const keep = await choose([
         { text:'file it where the next one will look' },
