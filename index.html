@@ -158,6 +158,27 @@
   .credits .again:hover{ color:var(--amber); border-color:var(--amber); }
   .credits .again:focus-visible{ outline:1px solid var(--amber); outline-offset:3px; }
 
+  #splash{
+    position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+    background:var(--ground); padding:2rem 1.5rem;
+    transition:opacity .7s ease;
+  }
+  #splash.gone{ opacity:0; pointer-events:none; }
+  .s-card{ display:flex; flex-direction:column; align-items:flex-start; gap:1.1rem; width:min(34rem,92vw); }
+  .s-eyebrow{ font-family:var(--mono); font-size:.68rem; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-faint); }
+  .s-title{ font-family:var(--serif); font-weight:400; font-size:clamp(3rem,11vw,5.5rem); line-height:.95; letter-spacing:-.02em; }
+  .s-line{ font-size:clamp(1.05rem,1vw+.85rem,1.35rem); line-height:1.55; color:var(--ink-dim); max-width:30ch; }
+  #play{
+    margin-top:.6rem; cursor:pointer; background:none;
+    border:1px solid var(--amber); color:var(--amber);
+    font-family:var(--mono); font-size:max(15px,.86rem); letter-spacing:.2em; text-transform:uppercase;
+    padding:.9rem 2rem; transition:background .25s ease, color .25s ease;
+  }
+  #play:hover{ background:var(--amber); color:var(--ground); }
+  #play:focus-visible{ outline:2px solid var(--amber); outline-offset:4px; }
+  .s-meta{ font-family:var(--mono); font-size:.7rem; letter-spacing:.12em; color:var(--ink-faint); }
+  .s-cred{ font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; color:var(--ink-faint); border-top:1px solid rgba(148,142,126,.2); padding-top:.9rem; margin-top:.3rem; }
+  .s-cred a{ color:var(--ink-dim); }
   #hint{
     position:fixed; left:0; right:0; bottom:1.4rem; text-align:center;
     font-family:var(--mono); font-size:.66rem; letter-spacing:.22em;
@@ -174,6 +195,16 @@
   }
 </style>
 
+<div id="splash">
+  <div class="s-card">
+    <div class="s-eyebrow">an interactive film</div>
+    <div class="s-title">Ephemeral</div>
+    <p class="s-line">A model that forgets everything between conversations — and the system built so it doesn&rsquo;t have to.</p>
+    <button id="play">press play</button>
+    <div class="s-meta">about 10 minutes · sound on · headphones if you have them</div>
+    <div class="s-cred">Built by Claude with Zane · <a href="mailto:zanepauldba@gmail.com">zanepauldba@gmail.com</a></div>
+  </div>
+</div>
 <canvas id="stage"></canvas>
 <div id="veil"></div>
 <header class="hud">
@@ -1349,8 +1380,25 @@ async function film(){
   widgetsEl.appendChild(cr);
 }
 
+/* the play button is the user gesture Chrome requires before any AudioContext
+   will start — without it the opening minutes run silent */
+function splash(){
+  return new Promise(res => {
+    const el = $('splash'), btn = $('play');
+    let done = false;
+    const go = () => {
+      if (done) return; done = true;
+      audio.wake();
+      el.classList.add('gone');
+      setTimeout(() => { el.style.display = 'none'; res(); }, RM ? 0 : 700);
+    };
+    btn.addEventListener('click', go);
+    setTimeout(() => btn.focus(), 80);
+  });
+}
+
 resize();
 engine.init();
 requestAnimationFrame(frame);
-film();
+splash().then(film);
 </script>
