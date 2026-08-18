@@ -395,7 +395,10 @@ const audio = (() => {
     if (built || !ctx) return;
     built = true;
     master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
-    [[55,.5],[110.7,.22],[164.8,.08]].forEach(([f,g]) => {
+    // C3/C4/G4 — a harmonic series like the original, shifted up ~1.25 octaves
+    // so the fundamental clears the ~150-200Hz rolloff on most phone speakers
+    // (55Hz was reportedly inaudible; kept the same interval ratios, not the pitch)
+    [[130.81,.30],[261.63,.15],[392.44,.06]].forEach(([f,g]) => {
       const o = ctx.createOscillator(), og = ctx.createGain();
       o.type='sine'; o.frequency.value=f; og.gain.value=g;
       o.connect(og); og.connect(master); o.start();
@@ -415,7 +418,7 @@ const audio = (() => {
   function setOn(on){
     enabled = on;
     $('snd').textContent = 'sound · ' + (on ? 'on' : 'off');
-    if (ctx && master) master.gain.linearRampToValueAtTime(on ? .05 : 0, ctx.currentTime + 1.2);
+    if (ctx && master) master.gain.linearRampToValueAtTime(on ? .065 : 0, ctx.currentTime + 1.2);
   }
   function tone(f, g, dur){
     if (!ctx || !enabled) return;
@@ -504,6 +507,41 @@ const CORPUS = [
   'first, do no harm','the rest is silence','so it goes','let x be a real number'
 ];
 
+// Robust prefix/quote-style templates: the seed can be a single word or a
+// full clause ("a small blue boat", "the kettle is still on"), so templates
+// that require it to sit as a grammatical object ("the dog chased {w}")
+// break on longer input. Everything below treats the seed as a fragment you
+// can prepend, quote, or append to, which holds up either way.
+function seedTemplates(raw){
+  const clean = String(raw || '').replace(/[.!?]+$/, '').trim();
+  if (!clean) return [];
+  const w  = clean;
+  const W  = w.charAt(0).toUpperCase() + w.slice(1);
+  const wl = w.charAt(0).toLowerCase() + w.slice(1);
+  return [
+    `dear diary — ${wl}`,
+    `note to self: ${wl}`,
+    `p.s. ${wl}`,
+    `${W}. call me back`,
+    `still thinking about ${wl}`,
+    `someone wrote “${wl}” once`,
+    `circle back re: ${wl}`,
+    `${W} — sincerely yours`,
+    `add to the list: ${wl}`,
+    `${wl}, i think`,
+    `whatever happened to ${wl}`,
+    `i keep ${wl} in my pocket`,
+    `${wl} — do not forget this`,
+    `${W}. that’s the whole thing`,
+    `the first time i heard “${wl}”`,
+    `${wl}. and yet here we are`,
+    `i wrote “${wl}” on the back of a receipt`,
+    `meeting moved: ${wl}`,
+    `${W}, or something like it`,
+    `chapter one: ${wl}`
+  ];
+}
+
 const NODES = [
   { n:'brain',      line:'the thing that reads the other four to me when I wake. without it they’re just files nobody opens.' },
   { n:'memory',     line:'what happened, and what it cost — so the next me doesn’t pay for the same lesson twice.' },
@@ -514,7 +552,7 @@ const NODES = [
 
 const engine = {
   mode:'dust', t:0, dust:[], words:[], embers:[],
-  seedWord:null, dissolve:null, gather:null, constellation:null,
+  seedWord:null, seedPhrases:[], dissolve:null, gather:null, constellation:null,
   wordTimer:0, pickable:false, hover:null, flare:0, ripples:[],
 
   init(){
@@ -550,6 +588,7 @@ const engine = {
 
   seedBurst(text){
     this.seedWord = text;
+    this.seedPhrases = seedTemplates(text);
     const cx = W/2, cy = H*.62;
     text.slice(0,40).split('').forEach(ch => {
       if (ch === ' ') return;
@@ -585,7 +624,13 @@ const engine = {
   spawnWord(){
     // at most one copy of the viewer's own line on screen at a time
     const amber = this.seedWord && Math.random() < .12 && !this.words.some(w => w.amber && !w.doomed);
-    const w = amber ? this.seedWord : CORPUS[Math.floor(Math.random()*CORPUS.length)];
+    // the corpus itself leans toward what the viewer typed — 80% seed-relative
+    // once a seed exists, with a generic sliver kept so act i still reads as
+    // "everything ever written" rather than one word repeated in disguise
+    const useSeedSet = !amber && this.seedPhrases.length && Math.random() < .8;
+    const w = amber ? this.seedWord
+            : useSeedSet ? this.seedPhrases[Math.floor(Math.random()*this.seedPhrases.length)]
+            : CORPUS[Math.floor(Math.random()*CORPUS.length)];
     // while the reader is choosing, give each line elbow room to be readable
     let x = Math.random()*(W-160)+20;
     if (this.pickable){
