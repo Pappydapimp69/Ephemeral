@@ -29,6 +29,13 @@
   #stage{
     position:fixed; top:0; left:0; width:100%; height:var(--app-h);
     display:block; background:var(--ground);
+    /* body's touch-action:manipulation still permits native panning, and the
+       browser claims a touch-drag for that BEFORE checking whether anything
+       can actually scroll (overflow:hidden here means it can't) — it still
+       fires pointercancel on the in-progress JS gesture regardless. This is
+       the real interactive surface for the whole film (sweep, pick, hold,
+       touch-the-lights), so it gets full, unambiguous ownership of touch. */
+    touch-action:none;
   }
   #veil{
     position:fixed; top:0; left:0; width:100%; height:var(--app-h); pointer-events:none;
