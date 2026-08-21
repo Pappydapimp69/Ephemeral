@@ -1,4 +1,29 @@
 <title>Ephemeral</title>
+<script>
+// GitHub Pages has no custom-headers mechanism, so a cached copy of this
+// page can sit in a browser (or a proxy) for up to 10 minutes after a
+// deploy, and there is no server-side lever to shorten that. Self-heal
+// instead: stamp each deploy, fetch a cache-bypassed copy of the SAME url
+// on load, and if the deployed stamp has moved on, reload once — a visitor
+// on a stale tab gets the current build automatically, with no hard-refresh
+// instruction needed. Guarded by sessionStorage so a persistently-stale
+// intermediary (or being offline) can only trigger one attempt, never a loop.
+const BUILD_ID = '2026-08-21T10-53-03Z';
+(function selfHeal(){
+  const KEY = 'ephemeral.buildCheck.' + BUILD_ID;
+  if (sessionStorage.getItem(KEY)) return;   // already tried for this build this tab
+  fetch(location.href, { cache: 'no-store' })
+    .then(r => r.text())
+    .then(html => {
+      const m = html.match(/BUILD_ID = '([^']+)'/);
+      if (m && m[1] !== BUILD_ID) {
+        sessionStorage.setItem(KEY, '1');
+        location.reload();
+      }
+    })
+    .catch(() => {});   // offline or blocked — just show what loaded
+})();
+</script>
 <style>
   :root{
     --ground:#07080c;
